@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajastin</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <style>
+        #timer {
+            font-size: 50px;
+            line-height: 1;
+            margin-bottom: 10px;
+            margin-top: 10px;
+            background-color: black;
+            color: white;
+            width: 180px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        #timer h1 {
+            font-size: 25px;
+        }
+
+        #startButton {
+            padding: 10px;
+            font-size: 20px;
+            background-color: green;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+
+        button:hover {
+            background-color: gold;
+            color: white;
+            border: none;
+        }
+
+        html {
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+        }
+
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+
+        .selected {
+            border: solid purple 8px;
+        }
+
+        li {
+            list-style-type: none;
+        }
+
+        .checkButton {
+            padding: 10px;
+            font-size: 20px;
+            margin-left: 20px;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        .flex-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .flex-container div {
+            margin: 5px;
+            width: 45%;
+            flex-direction: column;
+        }
+
+        .yesBtn {
+            padding: 15px;
+            font-size: 20px;
+            background-color: green;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin-right: 5px;
+            width: 80px;
+        }
+
+        .noBtn {
+            padding: 15px;
+            font-size: 20px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin-right: 5px;
+            width: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <section id="app">
+        <!-- onko vielä vastattu? jos on, näyttää oikein/väärin - jos ei, tarkistetaan, onko aika loppu -->
+        <div v-if="answered">
+            <h3 v-if="selectedAnswer">Oikein meni!</h3>
+            <h3 v-else>Väärin meni!</h3>
+        </div>
+        <div v-else>
+            <!-- jos aika on loppu, ehdottaa lisäajan ostoa tai päättää pelin -->
+            <div v-if="timeOut">
+                <h1>Aika loppui!</h1>
+                <div v-if="score !== 0">
+                    <h3>Sinulla on {{ score }} pistettä. Haluatko ostaa yhdellä pisteellä 15 minuuttia
+                        lisäaikaa pelin jatkamiseen? </h3>
+                    <button class="yesBtn" v-on:click="continueGame">Kyllä</button>
+                    <button class="noBtn" v-on:click="gameOver">Ei</button>
+                </div>
+                <div v-if="score === 0 || gameEnded">
+                    <h2>Peli päättyi! Sait pelistä {{ score }} pistettä.</h2>
+                </div>
+            </div>
+
+            <!-- tehtävään ei ole vastattu ja aika ei ole loppunut -> näyttää aloitusnapin  -->
+            <div v-else>
+                <div id="timer" v-show="notEnded">
+                    <h1 v-show="!timer">Aloita peli!</h1>
+
+                    <span id="minutes">{{ minutes }}</span>
+                    <span id="middle">:</span>
+                    <span id="seconds">{{ seconds }}</span>
+
+                    <button id="startButton" v-if="!timer" v-on:click="startTimer">Aloita!</button>
+                </div>
+
+                <div v-show="started">
+                    <h1> {{ question }}</h1>
+                    <div class="flex-container">
+
+                        <div v-for="answer in answers"
+                            v-on:click="selected.includes(answer.id) ? selected.splice(selected.indexOf(answer.id), 1) : selected.push(answer.id)"
+                            v-bind:class="{selected: selected.includes(answer.id)}">
+                            <img v-bind:src="answer.image">
+                        </div>
+                    </div>
+                    <button class="checkButton" v-on:click="checkAnswers">Tarkista</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+
+<script>
+    const app = new Vue({
+        el: "#app",
+        data: {
+            timer: null,
+            score: 0,
+            totalTime: (1 * 10),
+            question: "Missä kuvissa on lunta?",
+            started: false,
+            answered: false,
+            notEnded: true,
+            timeOut: false,
+            selectedAnswer: false,
+            gameEnded: false,
+            selected: [],
+            answers: [
+                {
+                    image: "IMG_0424.JPG",
+                    correct: true,
+                    actions: [
+                        {
+                            action: null,
+                            target: null
+                        }],
+                    id: 1
+                },
+
+                {
+                    image: "IMG_1615.JPG",
+                    correct: true,
+                    actions: [
+                        {
+                            action: null,
+                            target: null
+                        }],
+                    id: 2
+                },
+
+                {
+                    image: "IMG_3.jpg",
+                    correct: false,
+                    actions: [
+                        {
+                            action: null,
+                            target: null
+                        }],
+                    id: 3
+                },
+
+                {
+                    image: "IMG_5923.JPG",
+                    correct: false,
+                    actions: [
+                        {
+                            action: null,
+                            target: null
+                        }],
+                    id: 4
+                }
+            ]
+        },
+
+        mounted: function () {
+            this.checkTime();
+        },
+
+        methods: {
+            startTimer: function () {
+                this.timer = setInterval(() => this.countdown(), 1000);
+                this.started = true;
+
+                // ottaa pelin aloitusajan talteen localStorageen
+                let startingTime = Date.now();
+                localStorage.setItem("startingTime", startingTime);
+                console.log("startingTime", startingTime);
+            },
+
+            // kun sivu latautuu, ottaa avaushetken ajan talteen muuttujaan
+            checkTime: function () {
+                let onloadTime = Date.now();
+                console.log("onloadTime", onloadTime);
+
+                // jos start-nappia ei ole vielä painettu, näyttää painikkeen
+                let start = JSON.parse(localStorage.getItem("startingTime"));
+                if (start === null) {
+                    return;
+                }
+                // jos start-nappia on klikattu
+                else {
+                    // tarkistaa, onko latausaika pienempi kuin start-aika (ensimmäisessä tehtävässä näin on)
+                    if (onloadTime < start) {
+                        return;
+                    }
+
+                    // muissa tehtävissä latausaika on suurempi kuin start-aika
+                    else {
+                        let usedTimeSeconds = (onloadTime - start) / 1000;
+                        let usedTimeInt = usedTimeSeconds.toFixed(0);
+                        console.log("usedTimeInt", usedTimeInt);
+                    }
+                }
+
+                // jos käytetty aika on pienempi kuin kokonaisaika, aika ei ole loppunut ja peli voi jatkua 
+                let usedTimeSeconds = (onloadTime - start) / 1000;
+                let usedTimeInt = usedTimeSeconds.toFixed(0)
+                if (usedTimeInt < this.totalTime) {
+                    this.timeOut = false;
+                }
+
+                // muussa tapauksessa ehdottaa lisäajan ostoa
+                else {
+                    this.timeOut = true;
+                }
+
+                // vähentää totalTimesta käytetyn ajan
+                this.totalTime = this.totalTime - usedTimeInt;
+                localStorage.setItem("newTotalTime", this.totalTime);
+                console.log("newTotalTime", this.totalTime);
+            },
+
+            //lisää nollan eteen, kun luku on alle 10
+            padTime: function (time) {
+                return (time < 10 ? '0' : '') + time;
+            },
+
+            countdown: function () {
+                this.totalTime--;
+
+                // jos aika loppuu, piilottaa muut, mutta jättää tekstin: "Aika loppui!"
+                if (this.totalTime < 0) {
+                    this.timeOut = true;
+                    this.started = false;
+                    this.notEnded = false;
+                    this.answered = false;
+                }
+            },
+
+            checkAnswers: function () {
+                this.answered = true;
+                this.selectedAnswer = true;
+
+                console.log(this.selected);
+
+                for (let i = 0; i < this.answers.length; i++) {
+                    let answer = this.answers[i];
+                    console.log(answer);
+
+                    if (answer.correct !== this.selected.includes(answer.id)) {
+                        this.selectedAnswer = false;
+                        break;
+                    }
+                }
+
+                // laskee pisteet localStorageen
+                localStorage.setItem("score", "0");
+                let score = JSON.parse(localStorage.getItem("score"));
+                if (this.selectedAnswer === true) {
+                    this.score++;
+                    score++;
+                }
+                console.log("score", score);
+                console.log("score2", this.score);
+            },
+
+            continueGame: function () {
+                this.timeOut = false;
+                this.started = true;
+                this.notEnded = true;
+                this.totalTime = 15 * 60;
+                localStorage.setItem("newTotalTime", this.totalTime);
+                console.log("newTotalTime", this.totalTime);
+
+                // vähentää pisteen scoresta, jos haluaa ostaa peliin lisäaikaa
+                let score = JSON.parse(localStorage.getItem("score"));
+                if (score > 0) {
+                    score--;
+                }
+
+                if (this.score > 0) {
+                    this.score--;
+                }
+                console.log("scoreAfterPurchase", score);
+                console.log("scoreAfterPurchase2", this.score);
+            },
+
+            gameOver: function () {
+                this.gameEnded = true;
+            }
+        },
+
+        computed: {
+            minutes: function () {
+                const minutes = Math.floor(this.totalTime / 60);
+                return this.padTime(minutes);
+            },
+            seconds: function () {
+                const seconds = this.totalTime - (this.minutes * 60);
+                return this.padTime(seconds);
+            }
+        }
+    })
+</script>
+
+</html>
